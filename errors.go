@@ -11,7 +11,10 @@ import (
 // attempt runs longer than the configured timeout.
 var ErrTimeout = errors.New("truto: request timed out")
 
-// Done is returned by Iterator.Next when there are no more items.
+// Done is returned by Iterator.Next when there are no more items. The name
+// follows google.golang.org/api/iterator.Done, so loops read naturally.
+//
+//lint:ignore ST1012 Done is a loop sentinel, not a failure.
 var Done = errors.New("truto: no more items")
 
 // Error is returned when the Truto API answers with a non-2xx status.
