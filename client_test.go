@@ -540,7 +540,7 @@ func TestIntegratedAccountTools(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := m.calls()[0]; got.Path != "/integrated-account/ia_1/tools" || got.Query != "methods=list%2Cget" {
+	if got := m.calls()[0]; got.Path != "/integrated-account/ia_1/tools" || got.Query != "methods%5B0%5D=list&methods%5B1%5D=get" {
 		t.Errorf("request %s?%s", got.Path, got.Query)
 	}
 }

@@ -3,7 +3,6 @@ package truto
 import (
 	"context"
 	"net/http"
-	"strings"
 )
 
 // BulkCreate creates or upserts many tenants in one call.
@@ -132,10 +131,10 @@ type ToolsFilter struct {
 func (s *IntegratedAccountsService) Tools(ctx context.Context, id string, filter ToolsFilter, opts ...Option) (*ToolsResponseSchema, error) {
 	q := Params{}
 	if len(filter.Methods) > 0 {
-		q["methods"] = strings.Join(filter.Methods, ",")
+		q["methods"] = filter.Methods
 	}
 	if len(filter.Tags) > 0 {
-		q["tags"] = strings.Join(filter.Tags, ",")
+		q["tags"] = filter.Tags
 	}
 	if len(q) > 0 {
 		opts = append([]Option{WithQuery(q)}, opts...)
