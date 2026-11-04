@@ -2,7 +2,7 @@
 """Emit models_gen.go from codegen/models.json.
 
 Usage (from the repo root):
-    python3 codegen/normalize_spec.py spec/openapi.json > codegen/models.json
+    python3 codegen/normalize_spec.py spec/openapi.json spec/overlay.json > codegen/models.json
     python3 codegen/generate_go.py codegen/models.json > models_gen.go
     gofmt -w models_gen.go
 
@@ -80,7 +80,9 @@ class Gen:
         elif k == "array":
             return "[]" + self.go_type(t["items"], False)
         elif k == "map":
-            return "map[string]" + self.go_type(t["values"], False)
+            # Nullable values are pointers so a JSON null (e.g. "remove this
+            # header") survives a round trip instead of becoming "".
+            return "map[string]" + self.go_type(t["values"], t["values"].get("nullable", False))
         elif k == "ref":
             target = self.models.get(t["name"])
             base = type_name(t["name"])

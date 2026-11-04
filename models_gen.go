@@ -1361,7 +1361,7 @@ type EnvironmentUnifiedModelDocs struct {
 // Per-environment override for a unified-model installation. Stored on `environment_unified_model.override` and deep-merged on top of the base `unified_model`.
 type EnvironmentUnifiedModelOverride struct {
 	// Resource-level overrides keyed by resource name.
-	Resources map[string]EnvironmentUnifiedModelResourceOverride `json:"resources,omitempty"`
+	Resources map[string]*EnvironmentUnifiedModelResourceOverride `json:"resources,omitempty"`
 	// Per-integration extra OAuth scopes appended to the base unified-model scopes.
 	Scopes map[string][]string `json:"scopes,omitempty"`
 	// Per-integration JSONata expressions that route inbound webhooks to unified-model resources.
@@ -2335,13 +2335,11 @@ type IntegrationResourceMethod struct {
 	// Override the integration-level `authorization` for this method (e.g. a method that uses a different credential format than the rest of the integration).
 	Authorization *IntegrationAuthorization `json:"authorization,omitempty"`
 	// Static or templated request headers merged with the integration-level `headers`. Values are templated with placeholders; `null` removes the inherited header.
-	Headers map[string]string `json:"headers,omitempty"`
+	Headers map[string]*string `json:"headers,omitempty"`
 	// Static or templated query-string params merged with caller-supplied `query`. Values may be strings, numbers, booleans, arrays, or placeholders. Array serialization is controlled by `query_array_format`.
 	Query map[string]any `json:"query,omitempty"`
 	// How array values are serialized in the query string. `comma` → `?a=1,2`; `brackets` → `?a[]=1&a[]=2`; `indices` → `?a[0]=1&a[1]=2`; `repeat` → `?a=1&a=2`.
 	QueryArrayFormat *IntegrationResourceMethodQueryArrayFormat `json:"query_array_format,omitempty"`
-	// Static or templated request body for `post`/`put`/`patch` methods. Values may be any JSON type and may include placeholders. Use `$truto_merge` with `:json` to deep-merge an entire object — see placeholder syntax.
-	Body map[string]any `json:"body,omitempty"`
 	// JSON-schema-style declaration of supported query params used by Truto's MCP/tooling. May be a JSONata string for dynamic schemas, or a `JsonSchemaObject`.
 	QuerySchema any `json:"query_schema,omitempty"`
 	// JSON-schema-style declaration of the supported request body used by Truto's MCP/tooling. May be a JSONata string for dynamic schemas, or a `JsonSchemaObject`. The runtime (see `src/mcp/mcpRouter.ts`) reads `body_schema.properties`, so callers should emit the wrapped `JsonSchemaObject` shape `{ type "object", properties { ... } }` rather than a flat `{ name { type "string" } }` map.
@@ -2411,6 +2409,8 @@ type IntegrationResourceMethod struct {
 	// execute it; **Truto's own proxy does not run it yet**, so on Truto this is inert.
 	// Each step's `run_if` must parse as JSONata, or the write is a 400.
 	Before any `json:"before,omitempty"`
+	// Static or templated request body for `post`/`put`/`patch` methods. Any JSON value (usually an object, sometimes an array) and may include placeholders. Use `$truto_merge` with `:json` to deep-merge an entire object; see placeholder syntax.
+	Body any `json:"body,omitempty"`
 }
 
 // Strategy used to verify an inbound webhook's signature. The `format` discriminator selects which `config` shape applies.
@@ -2531,7 +2531,7 @@ type IntegrationConfig struct {
 	// URL to a smaller monochrome icon used in catalog listings.
 	Icon *string `json:"icon,omitempty"`
 	// Default HTTP headers merged into every outbound request. Values may be templated with JSONata placeholders.
-	Headers map[string]string `json:"headers,omitempty"`
+	Headers map[string]*string `json:"headers,omitempty"`
 	// Default query-string params merged into every outbound request.
 	Query            map[string]string                  `json:"query,omitempty"`
 	QueryArrayFormat *IntegrationConfigQueryArrayFormat `json:"query_array_format,omitempty"`
@@ -2698,8 +2698,6 @@ type EnvironmentIntegrationResourceMethod struct {
 	// Override or add query params for this method. Values may include JSONata placeholders.
 	Query            map[string]any                                        `json:"query,omitempty"`
 	QueryArrayFormat *EnvironmentIntegrationResourceMethodQueryArrayFormat `json:"query_array_format,omitempty"`
-	// Override the request body for this method. Values may include JSONata placeholders.
-	Body map[string]any `json:"body,omitempty"`
 	// Override the query schema. May be a JSONata string or a `JsonSchemaObject`.
 	QuerySchema any `json:"query_schema,omitempty"`
 	// Override the body schema. May be a JSONata string or a `JsonSchemaObject`. See `IntegrationResourceMethod.body_schema` for shape rationale.
@@ -2740,26 +2738,28 @@ type EnvironmentIntegrationResourceMethod struct {
 	// step, so an override of `[]` clears the base method's `before` for this environment.
 	// Stored only; Truto's own proxy does not run it yet.
 	Before any `json:"before,omitempty"`
+	// Override the request body for this method. Any JSON value; may include JSONata placeholders.
+	Body any `json:"body,omitempty"`
 }
 
 // Per-environment configuration override for an integration. Stored on `environment_integration.override` and **deep-merged** on top of the base `integration.config` at request time.
 type EnvironmentIntegrationConfig struct {
-	BaseURL          *string                                                    `json:"base_url,omitempty"`
-	Label            *string                                                    `json:"label,omitempty"`
-	Logo             *string                                                    `json:"logo,omitempty"`
-	Icon             *string                                                    `json:"icon,omitempty"`
-	Headers          map[string]string                                          `json:"headers,omitempty"`
-	Query            map[string]string                                          `json:"query,omitempty"`
-	QueryArrayFormat *EnvironmentIntegrationConfigQueryArrayFormat              `json:"query_array_format,omitempty"`
-	Actions          map[string]IntegrationAction                               `json:"actions,omitempty"`
-	Credentials      any                                                        `json:"credentials,omitempty"`
-	Authorization    *IntegrationAuthorization                                  `json:"authorization,omitempty"`
-	Pagination       *IntegrationPagination                                     `json:"pagination,omitempty"`
-	RateLimit        *IntegrationRateLimit                                      `json:"rate_limit,omitempty"`
-	Resources        map[string]map[string]EnvironmentIntegrationResourceMethod `json:"resources,omitempty"`
-	ToolTags         map[string][]string                                        `json:"tool_tags,omitempty"`
-	Webhook          *IntegrationWebhookConfig                                  `json:"webhook,omitempty"`
-	ErrorExpression  *string                                                    `json:"error_expression,omitempty"`
+	BaseURL          *string                                                     `json:"base_url,omitempty"`
+	Label            *string                                                     `json:"label,omitempty"`
+	Logo             *string                                                     `json:"logo,omitempty"`
+	Icon             *string                                                     `json:"icon,omitempty"`
+	Headers          map[string]*string                                          `json:"headers,omitempty"`
+	Query            map[string]string                                           `json:"query,omitempty"`
+	QueryArrayFormat *EnvironmentIntegrationConfigQueryArrayFormat               `json:"query_array_format,omitempty"`
+	Actions          map[string]IntegrationAction                                `json:"actions,omitempty"`
+	Credentials      any                                                         `json:"credentials,omitempty"`
+	Authorization    *IntegrationAuthorization                                   `json:"authorization,omitempty"`
+	Pagination       *IntegrationPagination                                      `json:"pagination,omitempty"`
+	RateLimit        *IntegrationRateLimit                                       `json:"rate_limit,omitempty"`
+	Resources        map[string]map[string]*EnvironmentIntegrationResourceMethod `json:"resources,omitempty"`
+	ToolTags         map[string][]string                                         `json:"tool_tags,omitempty"`
+	Webhook          *IntegrationWebhookConfig                                   `json:"webhook,omitempty"`
+	ErrorExpression  *string                                                     `json:"error_expression,omitempty"`
 	// Environment-specific description shown in the catalog.
 	Description *string `json:"description,omitempty"`
 	// Environment-specific tags shown in the catalog.
@@ -3706,7 +3706,7 @@ type IntegrationJwtBearerCredentialConfig struct {
 	Options     *IntegrationJwtBearerCredentialConfigOptions `json:"options,omitempty"`
 	TokenParams map[string]any                               `json:"tokenParams,omitempty"`
 	Params      map[string]string                            `json:"params,omitempty"`
-	Headers     map[string]string                            `json:"headers,omitempty"`
+	Headers     map[string]*string                           `json:"headers,omitempty"`
 	Fields      []IntegrationField                           `json:"fields"`
 	// Values Truto generates once per connection and stores in the integrated-account context under each entry's `name`. Declared instead of a `fields` entry when the provider requires the value to be generated by Truto rather than supplied by the customer — AWS's External ID is the first. A caller-supplied value for one of these names is ignored, and an existing value is never regenerated.
 	GeneratedFields   []IntegrationGeneratedField `json:"generated_fields,omitempty"`
@@ -5324,7 +5324,7 @@ type IntegrationErrorExpressionResult struct {
 	// Human-readable error message attached to the resulting Truto error.
 	Message *string `json:"message,omitempty"`
 	// Optional headers to attach to the resulting error/response.
-	Headers map[string]string `json:"headers,omitempty"`
+	Headers map[string]*string `json:"headers,omitempty"`
 	// Optional structured metadata propagated to the dashboard error log and webhook payloads.
 	Metadata map[string]any `json:"metadata,omitempty"`
 	// Optional payload returned in lieu of the upstream response when `status < 400` (e.g. when the upstream returns 200 with an error envelope, you can normalize the shape here).
