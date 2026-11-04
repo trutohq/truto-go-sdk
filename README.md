@@ -144,7 +144,7 @@ Admin API types such as `truto.IntegratedAccountResponse`, `truto.SyncJobCreateR
 - **Union types** (for example `truto.DatastoreConfig`) hold raw JSON. Decode a specific shape with the `As...` methods, such as `cfg.AsDatastoreS3Config()`, and build one with `truto.DatastoreConfigFrom...`.
 - **Unknown JSON fields are ignored**, so new API fields don't break decoding.
 
-Resources that the spec doesn't describe yet use `truto.Record`. These are teams, users, sandbox integrated accounts, daemons, daemon jobs and runs, alarms, and some request bodies.
+Resources that the spec doesn't describe yet use `truto.Record`. These are teams, users, sandbox integrated accounts, daemons, daemon jobs and runs, and some request bodies.
 
 To regenerate the models after updating `spec/openapi.json` (needs Python 3):
 

@@ -371,6 +371,36 @@ func TestPaginationHelpers(t *testing.T) {
 	}
 }
 
+// Truto error bodies carry the status text in "error" and the detail in
+// "message"; Message must return the detail.
+func TestAPIErrorPrefersMessage(t *testing.T) {
+	_, c := newMock(t, func(w http.ResponseWriter, r *http.Request, _ int) {
+		writeJSON(w, 400, map[string]any{"message": "state_key is required", "statusCode": 400, "error": "Bad Request"})
+	})
+	_, err := c.SyncJobRunStates.List(ctx).First()
+	var apiErr *truto.Error
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("want *truto.Error, got %T %v", err, err)
+	}
+	if apiErr.Message() != "state_key is required" {
+		t.Errorf("Message() = %q", apiErr.Message())
+	}
+	if !strings.Contains(err.Error(), "state_key is required") {
+		t.Errorf("Error() = %q", err.Error())
+	}
+}
+
+func TestPaginationRejectsNonJSON(t *testing.T) {
+	_, c := newMock(t, func(w http.ResponseWriter, r *http.Request, _ int) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte(`{"result":[{"id":"t1"}]}`))
+	})
+	_, err := c.Tenants.List(ctx).NextPage()
+	if err == nil || !strings.Contains(err.Error(), "expected a JSON response") {
+		t.Fatalf("want a content-type error, got %v", err)
+	}
+}
+
 func TestPaginationErrorStopsIteration(t *testing.T) {
 	_, c := newMock(t, func(w http.ResponseWriter, r *http.Request, call int) {
 		writeJSON(w, 401, map[string]any{"error": "bad token"})
@@ -498,7 +528,7 @@ func TestMCPPayloads(t *testing.T) {
 	}
 	calls := m.calls()
 	want := []string{
-		`{"jsonrpc":"2.0","method":"initialize","params":{"clientInfo":{"name":"my-agent","version":"1.0"},"protocolVersion":"2024-11-05"}}`,
+		`{"id":0,"jsonrpc":"2.0","method":"initialize","params":{"clientInfo":{"name":"my-agent","version":"1.0"},"protocolVersion":"2024-11-05"}}`,
 		`{"id":1,"jsonrpc":"2.0","method":"tools/list"}`,
 		`{"id":2,"jsonrpc":"2.0","method":"tools/call","params":{"arguments":{"limit":5},"name":"list_contacts"}}`,
 	}

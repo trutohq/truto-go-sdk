@@ -42,10 +42,12 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("truto: %s %s: %s: %s", e.Method, e.Path, e.Status, msg)
 }
 
-// Message returns the "error" or "message" field of a JSON error body, if any.
+// Message returns the "message" or "error" field of a JSON error body, if any.
+// Truto puts the detail in "message" and the status text in "error", as in
+// {"message":"state_key is required","statusCode":400,"error":"Bad Request"}.
 func (e *Error) Message() string {
 	if m, ok := e.Body.(map[string]any); ok {
-		for _, k := range []string{"error", "message"} {
+		for _, k := range []string{"message", "error"} {
 			if s, ok := m[k].(string); ok && s != "" {
 				return s
 			}
