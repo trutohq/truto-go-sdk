@@ -146,7 +146,9 @@ Admin API types such as `truto.IntegratedAccountResponse`, `truto.SyncJobCreateR
 
 Resources that the spec doesn't describe yet use `truto.Record`. These are teams, users, sandbox integrated accounts, daemons, daemon jobs and runs, and some request bodies.
 
-To regenerate the models after updating `spec/openapi.json` (needs Python 3):
+Where the published spec doesn't match what the API returns, the fix lives in `spec/overlay.json`, an [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0) applied before generation. For example, resource-method `body` is typed as any JSON value, because some integrations send an array there. Header maps use `map[string]*string`, because a `null` value means "remove the inherited header".
+
+To regenerate the models after updating `spec/openapi.json` or `spec/overlay.json` (needs Python 3):
 
 ```sh
 go generate ./...

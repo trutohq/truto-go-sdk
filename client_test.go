@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -585,5 +586,53 @@ func TestClientDo(t *testing.T) {
 	}
 	if m.calls()[0].Path != "/schema/x" {
 		t.Errorf("path %s", m.calls()[0].Path)
+	}
+}
+
+// testdata/integration_catalog_page.json is trimmed from the live catalog:
+// greythr sends a JSON array as a resource method body, and nativebridge uses a
+// null header value to remove an inherited header. Both used to fail decoding.
+func TestIntegrationCatalogDecodes(t *testing.T) {
+	page, err := os.ReadFile("testdata/integration_catalog_page.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, c := newMock(t, func(w http.ResponseWriter, r *http.Request, _ int) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(page)
+	})
+	integrations, err := c.Integrations.List(ctx).All()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(integrations) != 2 {
+		t.Fatalf("got %d integrations", len(integrations))
+	}
+
+	lov := integrations[0].Config.Resources["lov-greythr"]["list"]
+	body, ok := lov.Body.([]any)
+	if !ok || len(body) != 2 || body[0] != "lov::transitiontype" {
+		t.Errorf("array body: %#v", lov.Body)
+	}
+	create := integrations[0].Config.Resources["employees"]["create"]
+	if obj, ok := create.Body.(map[string]any); !ok || obj["name"] != "{{body.name}}" {
+		t.Errorf("object body: %#v", create.Body)
+	}
+
+	headers := integrations[1].Config.Resources["applications"]["create"].Headers
+	if v, present := headers["Content-Type"]; !present || v != nil {
+		t.Errorf("null header must decode as a present nil, got %v %v", v, present)
+	}
+	if v := headers["X-Mode"]; v == nil || *v != "upload" {
+		t.Errorf("X-Mode header %v", v)
+	}
+
+	// A null header must survive a round trip: it means "remove the inherited header".
+	out, err := json.Marshal(integrations[1].Config.Resources["applications"]["create"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), `"Content-Type":null`) {
+		t.Errorf("null header lost: %s", out)
 	}
 }

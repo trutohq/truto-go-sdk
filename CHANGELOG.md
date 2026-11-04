@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Fix: listing the full integration catalog no longer fails to decode. A resource method's `body` is now any JSON value (`any`), because some integrations (greythr) send a JSON array there.
+- Header maps in integration configs are now `map[string]*string`, so a `null` header (which removes an inherited header) is kept instead of becoming `""`.
+- Fixes to the published spec now live in `spec/overlay.json` (OpenAPI Overlay), applied by `go generate`.
+- `examples/proxy` only reads now. It used to update a record.
+
 ## 0.1.0
 
 First release.
