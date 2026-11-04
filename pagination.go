@@ -2,7 +2,6 @@ package truto
 
 import (
 	"context"
-	"encoding/json"
 	"iter"
 	"net/http"
 )
@@ -79,11 +78,9 @@ func (it *Iterator[T]) NextPage() (*Page[T], error) {
 		return nil, err
 	}
 	var lr listResponse[T]
-	if len(resp.body) > 0 {
-		if err := json.Unmarshal(resp.body, &lr); err != nil {
-			it.err = err
-			return nil, err
-		}
+	if err := resp.decodeInto(&lr); err != nil {
+		it.err = err
+		return nil, err
 	}
 	items := lr.Result
 	if items == nil {

@@ -56,7 +56,6 @@ type Client struct {
 	DaemonJobs                             *RecordService
 	DaemonJobRuns                          *RecordService
 	DaemonJobCronTriggers                  *DaemonJobCronTriggersService
-	Alarms                                 *RecordService
 	Workflows                              *WorkflowsService
 	WorkflowRuns                           *WorkflowRunsService
 	Webhooks                               *WebhooksService
@@ -108,7 +107,6 @@ func NewClient(token string, opts ...Option) *Client {
 	c.DaemonJobs = &RecordService{c, "daemon-job"}
 	c.DaemonJobRuns = &RecordService{c, "daemon-job-run"}
 	c.DaemonJobCronTriggers = &DaemonJobCronTriggersService{RecordService{c, "daemon-job-cron-trigger"}}
-	c.Alarms = &RecordService{c, "alarm"}
 	c.Workflows = &WorkflowsService{c}
 	c.WorkflowRuns = &WorkflowRunsService{c}
 	c.Webhooks = &WebhooksService{c}

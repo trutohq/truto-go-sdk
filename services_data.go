@@ -180,6 +180,7 @@ func (s *MCPService) Initialize(ctx context.Context, token, clientName, clientVe
 	return s.Call(ctx, token, Record{
 		"jsonrpc": "2.0",
 		"method":  "initialize",
+		"id":      0,
 		"params": Record{
 			"protocolVersion": MCPProtocolVersion,
 			"clientInfo":      Record{"name": clientName, "version": clientVersion},
